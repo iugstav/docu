@@ -1,0 +1,5 @@
+(executable
+ (public_name docu)
+ (name main)
+ (libraries docu core fmt)
+)

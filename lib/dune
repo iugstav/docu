@@ -1,0 +1,4 @@
+(library
+ (name docu)
+ (libraries core str lambdasoup tyxml)
+ (preprocess (pps ppx_deriving.show tyxml-ppx)))
