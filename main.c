@@ -1,3 +1,4 @@
+#include "html.h"
 #include "lexer.h"
 #include "parser.h"
 #include <stdio.h>
@@ -34,8 +35,16 @@ int main(void) {
 
 	struct parser *parser = parser_new(lexer->tokens);
 	struct node *document = parser_parse_document(parser);
-	ast_print(document, 0);
 
+	FILE *result = fopen("output.html", "w+");
+	if (!result) {
+		fprintf(stderr, "could not open output file to generate documentation...\n");
+		exit(69);
+	}
+
+	html_to_file(document, result);
+
+	fclose(result);
 	ast_free(document);
 	vec_free(lexer->tokens);
 	free(lexer);
