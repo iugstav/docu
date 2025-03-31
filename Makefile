@@ -14,7 +14,7 @@ main: $(OBJS)
 -include $(DEPS)
 
 $(OBJS):
-	$(CC) -c $(patsubst $(OBJDIR)%.o,%.c,$(@)) -o $(@)
+	$(CC) -pedantic -Wall -Werror -c $(patsubst $(OBJDIR)%.o,%.c,$(@)) -o $(@)
 
 $(OBJDIR):
 	mkdir -p $@
