@@ -11,6 +11,7 @@ enum NodeKind {
 	NODE_AUTHOR,
 	NODE_VERSION,
 	NODE_TAGS,
+	NODE_TAG_VALUE,
 	NODE_CODEBLOCK,
 	NODE_LIST,
 	NODE_PARAM,
@@ -21,9 +22,19 @@ enum NodeKind {
 	NODE_TEXT
 };
 
+struct tag_tuple {
+	enum TokenType owner_tag;
+	char *value;
+};
+
 struct node {
 	enum NodeKind kind;
-	char *value;
+
+	union {
+		char *str;
+		struct tag_tuple *tag_content;
+	} value;
+
 	struct node *n1;
 	struct node *n2;
 };
@@ -38,4 +49,4 @@ struct parser {
 };
 
 struct parser *parser_new(token_vector *vec);
-struct node* parser_parse_document(struct parser *parser);
+struct node *parser_parse_document(struct parser *parser);

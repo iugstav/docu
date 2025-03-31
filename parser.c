@@ -4,9 +4,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define IS_TAG(x)                                                                                                      \
+	(x) == TOK_VERSION || (x) == TOK_AUTHOR || (x) == TOK_DESC || (x) == TOK_PARAM || (x) == TOK_RETURN ||         \
+	    (x) == TOK_WARNING || (x) == TOK_TODO || (x) == TOK_TAGS
+
 extern void error(const char *fmt, ...);
 
 void ast_add_child(struct node *parent, struct node *child) {
+	/*printf("ast_add_child: %s\n", child->kind != NODE_TAG_VALUE ? child->value.str :
+	 * child->value.tag_content->value);*/
 	if (!parent->n1) {
 		parent->n1 = child;
 	} else {
@@ -42,6 +48,9 @@ void ast_print(struct node *node, int depth) {
 	case NODE_VERSION:
 		typeName = "VERSION";
 		break;
+	case NODE_TAG_VALUE:
+		typeName = "TAG VALUE";
+		break;
 	case NODE_TAGS:
 		typeName = "TAGS";
 		break;
@@ -74,7 +83,13 @@ void ast_print(struct node *node, int depth) {
 		break;
 	}
 
-	printf("%s: %s\n", typeName, node->value ? node->value : "");
+	char *value;
+	if (node->kind != NODE_TAG_VALUE) {
+		value = node->value.str;
+	} else {
+		value = node->value.tag_content->value;
+	}
+	printf("%s: %s\n", typeName, value ? value : "");
 	ast_print(node->n1, depth + 1);
 	ast_print(node->n2, depth);
 }
@@ -84,7 +99,11 @@ void ast_free(struct node *node) {
 		return;
 	ast_free(node->n1);
 	ast_free(node->n2);
-	free(node->value);
+	if (node->kind != NODE_TAG_VALUE) {
+		free(node->value.str);
+	} else {
+		free(node->value.tag_content->value);
+	}
 	free(node);
 }
 
@@ -95,7 +114,12 @@ struct node *node_new(enum NodeKind kind, const char *value) {
 	}
 
 	n->kind = kind;
-	n->value = strdup(value);
+	if (kind != NODE_TAG_VALUE) {
+		n->value.str = strdup(value);
+	} else {
+		n->value.tag_content = (struct tag_tuple *)malloc(sizeof(struct tag_tuple *));
+		n->value.tag_content->value = strdup(value);
+	}
 	n->n1 = NULL;
 	n->n2 = NULL;
 	return n;
@@ -129,8 +153,9 @@ struct node *parser_parse_document(struct parser *parser) {
 	struct node *doc = node_new(NODE_DOCUMENT, "Document");
 	while (parser_current(parser)->type != TOK_EOF) {
 		struct node *element = parse_element(parser);
-		if (element)
+		if (element) {
 			ast_add_child(doc, element);
+		}
 	}
 	return doc;
 }
@@ -227,6 +252,7 @@ struct node *parse_element(struct parser *parser) {
 			break;
 		}
 		advance(parser);
+		printf("%s\n", parser->tokens->items[parser->index - 1]->lexeme);
 		char *value = go_until_newline(parser);
 		struct node *node = node_new(type, value);
 		free(value);
@@ -277,9 +303,15 @@ struct node *parse_element(struct parser *parser) {
 		return node;
 	}
 	case TOK_STRING: {
+		struct node *node;
 		// Plain text line.
 		char *value = go_until_newline(parser);
-		struct node *node = node_new(NODE_TEXT, value);
+		if (IS_TAG(parser->tokens->items[parser->index - 1]->type)) {
+			node = node_new(NODE_TAG_VALUE, value);
+			node->value.tag_content->owner_tag = parser->tokens->items[parser->index - 1]->type;
+		} else {
+			node = node_new(NODE_TEXT, value);
+		}
 		free(value);
 		return node;
 	}
