@@ -28,13 +28,18 @@ int main(void) {
 	lexer->length = strlen(input); // switch when using file
 	lexer->tokens = vec_init();
 
-	printf("input length: %lu\n", strlen(input));
 	do {
 		lexer_next(lexer);
 	} while (vec_last(lexer->tokens)->type != TOK_EOF);
 
+	/*for (size_t i = 0; i < lexer->tokens->count; i++) {*/
+	/*	token_print(lexer->tokens->items[i]);*/
+	/*}*/
+	/*printf("\n");*/
+
 	struct parser *parser = parser_new(lexer->tokens);
 	struct node *document = parser_parse_document(parser);
+	/*ast_print(document, 0);*/
 
 	FILE *result = fopen("output.html", "w+");
 	if (!result) {
